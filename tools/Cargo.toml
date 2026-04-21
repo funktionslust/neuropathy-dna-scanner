@@ -1,0 +1,42 @@
+[package]
+name = "nds-tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Development tools for neuropathy-dna-scanner: synthetic BAM fixture generator (synth_bam) and xtask runner."
+
+[dependencies]
+noodles-bam.workspace = true
+noodles-bgzf.workspace = true
+noodles-cram.workspace = true
+noodles-fasta.workspace = true
+noodles-sam.workspace = true
+noodles-core.workspace = true
+nds-core = { path = "../core" }
+clap = { version = "4", features = ["derive"] }
+rand = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+flate2 = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "synth_bam"
+path = "src/bin/synth_bam.rs"
+
+[[bin]]
+name = "xtask"
+path = "src/bin/xtask.rs"
+
+[[bin]]
+name = "build_catalog"
+path = "src/bin/build_catalog.rs"
+
+[[bin]]
+name = "build_test_fixtures"
+path = "src/bin/build_test_fixtures.rs"

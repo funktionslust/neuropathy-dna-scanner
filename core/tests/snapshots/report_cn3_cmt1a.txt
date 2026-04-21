@@ -1,0 +1,65 @@
+| CMT subtype | Gene / mechanism | Approx. share of CMT cases | v0.1 (current) | Roadmap |
+|---|---|---|---|---|
+| CMT1A | PMP22 1.4 Mb duplication (CNV) | ~50% | **Supported** | -- |
+| HNPP | PMP22 deletion at same locus (CNV) | reciprocal of CMT1A | **Supported (side-effect of depth-ratio method)** | -- |
+| PTLS | RAI1 3.5 Mb duplication (17p11.2 CNV) | not CMT; ~1:20,000 | **Supported** | -- |
+| SMS | RAI1 3.5 Mb deletion (17p11.2 CNV) | not CMT; ~1:15,000 | **Supported (side-effect of depth-ratio method)** | -- |
+| YUHAL | PMP22+RAI1 ~6 Mb contiguous duplication | very rare | **Supported** | -- |
+| CMTX1 | GJB1 point mutations (X-linked) | ~10% | Not supported | v0.2 |
+| CMT1B | MPZ point mutations | ~4% | Not supported | v0.3 |
+| CMT2A | MFN2 point mutations | ~4% | Not supported | v0.3 |
+| CMT1E | PMP22 point mutations (not the duplication) | ~1% | Not supported | v0.3 |
+| CMT4 family | GDAP1, SH3TC2, NDRG1, ... (recessive) | rare | Not supported | v0.3 |
+| CMT2 long tail | NEFL, HSPB1, GARS1, RAB7A, ... | rare | Not supported | v0.3 |
+| CMT-DI (dominant intermediate) | requires phase information | rare | Not supported | Out of scope |
+| CMT with repeat expansions | requires ExpansionHunter-class tooling | very rare | Not supported | Out of scope |
+| Mosaic CMT | requires statistical model (parascopy class) | rare | Not supported | Out of scope |
+
+================================================================
+neuropathy-dna-scanner v0.1.0 -- analysis report
+================================================================
+
+Timestamp:       2026-04-15T14:23:47Z
+Input:           sample.cram
+Reference MD5:   1d3085cf3e275ecb01ed2b30db8b6e2c
+
+----------------------------------------------------------------
+Depth-ratio analysis
+----------------------------------------------------------------
+PMP22 region mean depth:  45.0×
+Autosomal mean depth:     30.0×
+Ratio:                    1.500
+Estimated copy number:    3
+
+----------------------------------------------------------------
+Boundary scan
+----------------------------------------------------------------
+Longest run:           chr17:14190000-15580000
+Direction:             Duplication
+Length:                1390001 bases
+Mean normalized depth: 1.500
+
+----------------------------------------------------------------
+Interpretation
+----------------------------------------------------------------
+Copy number:    3
+Confidence:     Full
+Subtype:        CMT1A
+Atypical flags: none
+
+PMP22 duplication detected at the classical CMT1A locus. This is
+consistent with CMT1A, the most common form of inherited peripheral
+neuropathy. Requires clinical confirmation by MLPA or array-CGH at a
+certified diagnostic laboratory.
+
+================================================================
+Research-grade screening tool only.
+
+This tool is NOT a medical device, NOT a diagnostic test, and NOT a substitute for clinical genetic testing. It currently screens only for the subtypes listed as Supported in the matrix above. It does NOT screen for any other form of CMT, and it may miss atypical or mosaic cases of the subtypes it does screen for.
+
+A positive result requires clinical confirmation by MLPA, array-CGH, or sequencing at a certified diagnostic laboratory before any medical decision.
+
+A negative result does NOT exclude CMT. It excludes only the subtypes marked Supported at the version of the tool you ran. Anyone with symptoms suggestive of inherited neuropathy (foot drop, high arches, distal weakness, hammer toes, family history) should see a neurologist or clinical geneticist regardless of this tool's output.
+
+The author is not a clinician and provides no medical advice. Use at your own discretion. By using this tool you acknowledge that you understand these limitations.
+================================================================

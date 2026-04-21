@@ -1,0 +1,164 @@
+use std::{
+    error, fmt, io,
+    num::{NonZero, Saturating},
+};
+
+use super::write_u8;
+use crate::{codecs::rans_nx16::ALPHABET_SIZE, io::writer::num::write_uint7};
+
+pub struct Context {
+    pub alphabet: [bool; ALPHABET_SIZE],
+    pub dst: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub enum BuildContextError {
+    EmptyAlphabet,
+}
+
+impl error::Error for BuildContextError {}
+
+impl fmt::Display for BuildContextError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyAlphabet => write!(f, "empty alphabet"),
+        }
+    }
+}
+
+pub fn build_context(src: &[u8]) -> Result<Context, BuildContextError> {
+    let mut alphabet = [Saturating::default(); ALPHABET_SIZE];
+
+    for window in src.windows(2) {
+        let (prev_sym, sym) = (window[0], window[1]);
+        let delta = if sym == prev_sym { 1 } else { -1 };
+        alphabet[usize::from(sym)] += delta;
+    }
+
+    let alphabet = alphabet.map(|n| n.0 > 0);
+
+    let n = alphabet.iter().filter(|&&a| a).count();
+    let symbol_count = NonZero::new(n).ok_or(BuildContextError::EmptyAlphabet)?;
+
+    let mut dst = Vec::new();
+    write_alphabet(&mut dst, &alphabet, symbol_count);
+
+    Ok(Context { alphabet, dst })
+}
+
+fn write_alphabet(
+    dst: &mut Vec<u8>,
+    alphabet: &[bool; ALPHABET_SIZE],
+    symbol_count: NonZero<usize>,
+) {
+    write_symbol_count(dst, symbol_count);
+
+    for (sym, _) in alphabet.iter().enumerate().filter(|(_, a)| **a) {
+        // SAFETY: `sym` < `ALPHABET_SIZE`.
+        write_u8(dst, sym as u8);
+    }
+}
+
+fn write_symbol_count(dst: &mut Vec<u8>, symbol_count: NonZero<usize>) {
+    let mut n = symbol_count.get();
+
+    if n >= ALPHABET_SIZE {
+        n = 0;
+    }
+
+    // SAFETY: `n` < `ALPHABET_SIZE`.
+    write_u8(dst, n as u8);
+}
+
+pub fn write_context(dst: &mut Vec<u8>, ctx: &Context, compressed_size: usize) -> io::Result<()> {
+    let n =
+        u32::try_from(ctx.dst.len()).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    write_uint7(dst, (n << 1) | 1)?;
+
+    let n = u32::try_from(compressed_size)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    write_uint7(dst, n)?;
+
+    dst.extend(&ctx.dst);
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_context() -> Result<(), BuildContextError> {
+        let src = b"nnndlllllss";
+        let ctx = build_context(src)?;
+
+        let mut expected_alphabet = [false; ALPHABET_SIZE];
+        expected_alphabet[usize::from(b'l')] = true;
+        expected_alphabet[usize::from(b'n')] = true;
+        assert_eq!(ctx.alphabet, expected_alphabet);
+
+        assert_eq!(
+            ctx.dst,
+            [
+                0x02, // symbol count
+                b'l', b'n', // alphabet
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_alphabet() {
+        let mut alphabet = [false; ALPHABET_SIZE];
+        alphabet[usize::from(b'n')] = true;
+
+        let symbol_count = const { NonZero::new(1).unwrap() };
+
+        let mut dst = Vec::new();
+        write_alphabet(&mut dst, &alphabet, symbol_count);
+
+        assert_eq!(
+            dst,
+            [
+                0x01, // symbol count = 1
+                b'n', // alphabet
+            ]
+        );
+    }
+
+    #[test]
+    fn test_write_symbol_count() {
+        let mut dst = Vec::new();
+
+        dst.clear();
+        write_symbol_count(&mut dst, const { NonZero::new(1).unwrap() });
+        assert_eq!(dst, [0x01]);
+
+        dst.clear();
+        write_symbol_count(&mut dst, const { NonZero::new(256).unwrap() });
+        assert_eq!(dst, [0x00]);
+    }
+
+    #[test]
+    fn test_write_context() -> Result<(), Box<dyn std::error::Error>> {
+        let src = b"nnndlllllss";
+        let ctx = build_context(src)?;
+
+        let mut dst = Vec::new();
+        write_context(&mut dst, &ctx, 5)?;
+
+        assert_eq!(
+            dst,
+            [
+                0x07, // (context size = 3, is_compressed = false)
+                0x05, // compressed size
+                0x02, // symbol count
+                b'l', b'n', // alphabet
+            ]
+        );
+
+        Ok(())
+    }
+}

@@ -1,0 +1,178 @@
+use std::{
+    io::{self, Read, Seek, SeekFrom},
+    slice, vec,
+};
+
+use noodles_core::region::Interval;
+use noodles_sam as sam;
+
+use super::{Container, Reader};
+use crate::crai;
+
+/// An iterator over records that intersect a given region.
+///
+/// This is created by calling [`Reader::query`].
+pub struct Query<'r, 'h: 'r, 'i: 'r, R>
+where
+    R: Read + Seek,
+{
+    reader: &'r mut Reader<R>,
+
+    header: &'h sam::Header,
+
+    index: slice::Iter<'i, crai::Record>,
+
+    reference_sequence_id: usize,
+    interval: Interval,
+
+    records: vec::IntoIter<sam::alignment::RecordBuf>,
+}
+
+impl<'r, 'h: 'r, 'i: 'r, R> Query<'r, 'h, 'i, R>
+where
+    R: Read + Seek,
+{
+    pub(super) fn new(
+        reader: &'r mut Reader<R>,
+        header: &'h sam::Header,
+        index: &'i crai::Index,
+        reference_sequence_id: usize,
+        interval: Interval,
+    ) -> Self {
+        Self {
+            reader,
+
+            header,
+
+            index: index.iter(),
+
+            reference_sequence_id,
+            interval,
+
+            records: Vec::new().into_iter(),
+        }
+    }
+
+    fn read_next_container(&mut self) -> Option<io::Result<()>> {
+        let index_record = self.index.next()?;
+
+        if index_record.reference_sequence_id() != Some(self.reference_sequence_id) {
+            return Some(Ok(()));
+        }
+
+        // Skip containers entirely BEFORE the query range — don't seek
+        // to them. Without this, noodles reads every container from
+        // chromosome position 0, even for a query at position 50M.
+        if let Some(container_start) = index_record.alignment_start() {
+            let container_end_pos =
+                container_start.get() + index_record.alignment_span();
+            if let Some(interval_start) = self.interval.start() {
+                if container_end_pos < interval_start.get() {
+                    return Some(Ok(())); // skip without seeking
+                }
+            }
+        }
+
+        // Early termination: stop reading past the query range.
+        if let (Some(container_start), Some(interval_end)) =
+            (index_record.alignment_start(), self.interval.end())
+        {
+            if container_start > interval_end {
+                return None;
+            }
+        }
+
+        if let Err(e) = self.reader.seek(SeekFrom::Start(index_record.offset())) {
+            return Some(Err(e));
+        }
+
+        let mut container = Container::default();
+
+        match self.reader.read_container(&mut container) {
+            Ok(0) => return None,
+            Ok(_) => {}
+            Err(e) => return Some(Err(e)),
+        };
+
+        let compression_header = match container.compression_header() {
+            Ok(compression_header) => compression_header,
+            Err(e) => return Some(Err(e)),
+        };
+
+        let records = container
+            .slices()
+            .map(|result| {
+                let slice = result?;
+
+                let (core_data_src, external_data_srcs) = slice.decode_blocks()?;
+
+                slice
+                    .records(
+                        self.reader.reference_sequence_repository.clone(),
+                        self.header,
+                        &compression_header,
+                        &core_data_src,
+                        &external_data_srcs,
+                    )
+                    .and_then(|records| {
+                        records
+                            .into_iter()
+                            .map(|record| {
+                                sam::alignment::RecordBuf::try_from_alignment_record(
+                                    self.header,
+                                    &record,
+                                )
+                            })
+                            .collect::<io::Result<Vec<_>>>()
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>();
+
+        let records = match records {
+            Ok(records) => records,
+            Err(e) => return Some(Err(e)),
+        };
+
+        self.records = records
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .into_iter();
+
+        Some(Ok(()))
+    }
+}
+
+impl<R> Iterator for Query<'_, '_, '_, R>
+where
+    R: Read + Seek,
+{
+    type Item = io::Result<sam::alignment::RecordBuf>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.records.next() {
+                Some(record) => {
+                    if intersects(&record, self.interval) {
+                        return Some(Ok(record));
+                    }
+                }
+                None => match self.read_next_container() {
+                    Some(Ok(())) => {}
+                    Some(Err(e)) => return Some(Err(e)),
+                    None => return None,
+                },
+            }
+        }
+    }
+}
+
+fn intersects(record: &sam::alignment::RecordBuf, region_interval: Interval) -> bool {
+    match (record.alignment_start(), record.alignment_end()) {
+        (Some(start), Some(end)) => {
+            let alignment_interval = (start..=end).into();
+            region_interval.intersects(alignment_interval)
+        }
+        _ => false,
+    }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "nds-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core library for neuropathy-dna-scanner: depth-ratio and boundary-scan algorithms over CRAM/BAM."
+
+[dependencies]
+noodles-bam.workspace = true
+noodles-bgzf.workspace = true
+noodles-cram.workspace = true
+noodles-sam.workspace = true
+noodles-fasta.workspace = true
+noodles-core.workspace = true
+noodles-csi = "0.55"
+thiserror.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+nds-tools = { path = "../tools" }

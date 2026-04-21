@@ -1,0 +1,199 @@
+use std::{error, fmt, io, num::NonZero};
+
+use crate::{
+    codecs::rans_nx16::ALPHABET_SIZE,
+    io::writer::num::{write_u8, write_uint7},
+};
+
+// § 3.5 "rANS Nx16 Bit Packing" (2023-03-15): "It is not permitted to have `nsym` > 16 [...] as
+// bit packing is not possible."
+const MAX_SYMBOL_COUNT: usize = 16;
+
+pub struct Context {
+    pub symbol_count: NonZero<usize>,
+    alphabet: [bool; ALPHABET_SIZE],
+    pub mapping_table: [u8; ALPHABET_SIZE],
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum BuildContextError {
+    EmptyAlphabet,
+    TooManySymbols(usize),
+}
+
+impl error::Error for BuildContextError {}
+
+impl fmt::Display for BuildContextError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyAlphabet => write!(f, "empty alphabet"),
+            Self::TooManySymbols(n) => write!(
+                f,
+                "too many symbols: expected 1 <= symbol count <= {MAX_SYMBOL_COUNT}, got {n}"
+            ),
+        }
+    }
+}
+
+pub fn build_context(src: &[u8]) -> Result<Context, BuildContextError> {
+    let alphabet = build_alphabet(src);
+    let (mapping_table, symbol_count) = build_mapping_table(&alphabet)?;
+
+    Ok(Context {
+        symbol_count,
+        alphabet,
+        mapping_table,
+    })
+}
+
+fn build_alphabet(src: &[u8]) -> [bool; ALPHABET_SIZE] {
+    let mut alphabet = [false; ALPHABET_SIZE];
+
+    for &sym in src {
+        alphabet[usize::from(sym)] = true;
+    }
+
+    alphabet
+}
+
+fn build_mapping_table(
+    alphabet: &[bool; ALPHABET_SIZE],
+) -> Result<([u8; ALPHABET_SIZE], NonZero<usize>), BuildContextError> {
+    let mut mapping_table = [0; ALPHABET_SIZE];
+    let mut symbol_count = 0;
+
+    for (sym, _) in alphabet.iter().enumerate().filter(|(_, a)| **a) {
+        mapping_table[sym] = symbol_count;
+        symbol_count += 1;
+
+        let n = usize::from(symbol_count);
+
+        if n > MAX_SYMBOL_COUNT {
+            return Err(BuildContextError::TooManySymbols(n));
+        }
+    }
+
+    NonZero::new(usize::from(symbol_count))
+        .ok_or(BuildContextError::EmptyAlphabet)
+        .map(|n| (mapping_table, n))
+}
+
+pub fn write_context(dst: &mut Vec<u8>, ctx: &Context, compressed_size: usize) -> io::Result<()> {
+    let n = u8::try_from(ctx.symbol_count.get())
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    write_u8(dst, n)?;
+
+    for (sym, _) in ctx.alphabet.iter().enumerate().filter(|(_, a)| **a) {
+        // SAFETY: `sym` < `ALPHABET_SIZE`.
+        write_u8(dst, sym as u8)?;
+    }
+
+    let n = u32::try_from(compressed_size)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    write_uint7(dst, n)?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_context() -> Result<(), BuildContextError> {
+        let src = b"ndls";
+
+        let mut alphabet = [false; ALPHABET_SIZE];
+        alphabet[usize::from(b'n')] = true;
+        alphabet[usize::from(b'd')] = true;
+        alphabet[usize::from(b'l')] = true;
+        alphabet[usize::from(b's')] = true;
+
+        let mut mapping_table = [0; ALPHABET_SIZE];
+        mapping_table[usize::from(b'd')] = 0;
+        mapping_table[usize::from(b'l')] = 1;
+        mapping_table[usize::from(b'n')] = 2;
+        mapping_table[usize::from(b's')] = 3;
+
+        let expected = Context {
+            symbol_count: const { NonZero::new(4).unwrap() },
+            alphabet,
+            mapping_table,
+        };
+
+        let actual = build_context(src)?;
+        assert_eq!(actual.symbol_count, expected.symbol_count);
+        assert_eq!(actual.alphabet, expected.alphabet);
+        assert_eq!(actual.mapping_table, expected.mapping_table);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_build_alphabet() {
+        let src = [];
+        let expected = [false; ALPHABET_SIZE];
+        assert_eq!(build_alphabet(&src), expected);
+
+        let src = b"ndls";
+        let mut expected = [false; ALPHABET_SIZE];
+        expected[usize::from(b'n')] = true;
+        expected[usize::from(b'd')] = true;
+        expected[usize::from(b'l')] = true;
+        expected[usize::from(b's')] = true;
+        assert_eq!(build_alphabet(src), expected);
+    }
+
+    #[test]
+    fn test_build_mapping_table() -> Result<(), BuildContextError> {
+        let src = b"ndls";
+        let alphabet = build_alphabet(src);
+
+        let mut expected_mapping_table = [0; ALPHABET_SIZE];
+        expected_mapping_table[usize::from(b'd')] = 0;
+        expected_mapping_table[usize::from(b'l')] = 1;
+        expected_mapping_table[usize::from(b'n')] = 2;
+        expected_mapping_table[usize::from(b's')] = 3;
+
+        let expected_symbol_count = const { NonZero::new(4).unwrap() };
+
+        let expected = (expected_mapping_table, expected_symbol_count);
+        assert_eq!(build_mapping_table(&alphabet)?, expected);
+
+        let src = [];
+        let alphabet = build_alphabet(&src);
+        assert_eq!(
+            build_mapping_table(&alphabet),
+            Err(BuildContextError::EmptyAlphabet)
+        );
+
+        let src = b"abcdefghijklmnopq";
+        let alphabet = build_alphabet(src);
+        assert_eq!(
+            build_mapping_table(&alphabet),
+            Err(BuildContextError::TooManySymbols(17))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_context() -> Result<(), Box<dyn std::error::Error>> {
+        let src = b"ndls";
+        let ctx = build_context(src)?;
+
+        let mut dst = Vec::new();
+        write_context(&mut dst, &ctx, 1)?;
+
+        assert_eq!(
+            dst,
+            [
+                0x04, // symbol count = 4
+                b'd', b'l', b'n', b's', // mapping table
+                0x01, // compressed size = 1
+            ]
+        );
+
+        Ok(())
+    }
+}

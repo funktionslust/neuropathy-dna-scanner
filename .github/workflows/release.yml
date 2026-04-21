@@ -1,0 +1,71 @@
+name: Release
+
+# Creates a `vX.Y.Z` git tag and a matching GitHub Release. Two ways in:
+#
+# 1. A branch push to `main` that modifies `Cargo.toml` (typically a merged
+#    catalog-refresh PR). The new version is read from the manifest, the
+#    tag is pushed, and the Release is created.
+# 2. A direct tag push (`git push origin v0.1.2`) from a maintainer. The
+#    tag already exists, so only the Release is created.
+#
+# In both cases the tag push fans out to `docker.yml`, which publishes the
+# image under the matching version tag.
+
+on:
+  push:
+    branches: [main]
+    paths: [Cargo.toml]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            tag="${{ github.ref_name }}"
+            version="${tag#v}"
+          else
+            version=$(awk -F'"' '/^version\s*=/ {print $2; exit}' Cargo.toml)
+            tag="v$version"
+          fi
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+
+      - name: Check whether tag already exists
+        id: exists
+        run: |
+          if git rev-parse --verify "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push tag
+        if: steps.exists.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true

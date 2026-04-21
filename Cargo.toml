@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = ["core", "wasm", "tools"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.87"
+repository = "https://github.com/funktionslust/neuropathy-dna-scanner"
+homepage = "https://neuropathydnascanner.com"
+description = "Browser-based screening tool for inherited neuropathies"
+
+[workspace.dependencies]
+noodles-bam = "0.88"
+noodles-bgzf = "0.46"
+noodles-cram = "0.92"
+noodles-sam = "0.84"
+noodles-fasta = "0.60"
+noodles-core = "0.19"
+thiserror = "2"
+
+[patch.crates-io]
+# Vendored noodles-cram with patches for Huffman codec, missing reference
+# handling, sequence iterator fix, and query optimization.
+# See vendor/noodles-cram/PATCHES.md for details.
+noodles-cram = { path = "vendor/noodles-cram" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"

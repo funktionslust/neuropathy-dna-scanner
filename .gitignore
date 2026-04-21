@@ -1,0 +1,18 @@
+target/
+web/pkg/
+web/dist/
+web/node_modules/
+wasm/pkg/
+wasm/.vite/
+*.bam.bai
+*.cram.crai
+# Deterministic indexes for committed test fixtures need to ship so CI
+# (without samtools) can run the FileAlignmentSource / range_query tests.
+!core/tests/data/*.bam.bai
+.DS_Store
+ref/*.fna
+ref/*.fa
+ref/*.fasta
+ref/*.fai
+fixtures/
+core/data/catalog.json

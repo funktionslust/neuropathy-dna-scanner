@@ -1,0 +1,128 @@
+name: Catalog refresh
+
+on:
+  schedule:
+    # Weekly on Monday 03:17 UTC. Deliberately off-the-hour to avoid the
+    # GitHub cron rush.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Download ClinVar VCF
+        run: |
+          mkdir -p _clinvar
+          curl -sSL --retry 3 \
+            -o _clinvar/clinvar.vcf.gz \
+            https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
+          # Sanity: ClinVar weekly is ~100 MB; anything under 10 MB is a
+          # transient CDN glitch and we'd rather fail than build garbage.
+          size=$(stat -c %s _clinvar/clinvar.vcf.gz)
+          if [ "$size" -lt $((10 * 1024 * 1024)) ]; then
+            echo "clinvar.vcf.gz only $size bytes — aborting." >&2
+            exit 1
+          fi
+
+      - name: Build catalog
+        run: |
+          cargo run --release --bin build_catalog -- \
+            --clinvar _clinvar/clinvar.vcf.gz \
+            --panelapp-id 85 \
+            --min-stars 1 \
+            --output _clinvar/catalog.json
+
+      - name: Canonicalise and compress
+        run: |
+          # Canonical JSON for the gzip payload (sorted keys, deterministic
+          # formatting). Deterministic gzip flags so byte output only
+          # changes when content changes.
+          jq -S . _clinvar/catalog.json > _clinvar/catalog.canonical.json
+          gzip -n -9 < _clinvar/catalog.canonical.json > _clinvar/catalog.json.gz
+
+      - name: Compare with committed catalog
+        id: diff
+        run: |
+          # For the diff decision, strip the two date-stamp fields: they
+          # change every run even when ClinVar ships identical data. We
+          # still want those updated dates in the PUBLISHED catalog, so
+          # we only remove them for the comparison hash.
+          strip='del(.meta.generated_date, .meta.clinvar_date)'
+
+          committed_sha=$(gunzip -c core/data/catalog.json.gz \
+            | jq -S "$strip" \
+            | sha256sum | cut -d' ' -f1)
+          fresh_sha=$(jq -S "$strip" _clinvar/catalog.canonical.json \
+            | sha256sum | cut -d' ' -f1)
+
+          echo "committed (date-stripped) sha256: $committed_sha"
+          echo "fresh     (date-stripped) sha256: $fresh_sha"
+
+          if [ "$committed_sha" = "$fresh_sha" ]; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+            echo "::notice::ClinVar content unchanged; nothing to publish."
+          else
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+            echo "fresh_sha=$fresh_sha" >>"$GITHUB_OUTPUT"
+            echo "::notice::ClinVar content changed; will open a PR."
+          fi
+
+      - name: Stage new catalog
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          cp _clinvar/catalog.json.gz core/data/catalog.json.gz
+
+      - name: Derive new version
+        if: steps.diff.outputs.changed == 'true'
+        id: version
+        run: |
+          current=$(awk -F'"' '/^version\s*=/ {print $2; exit}' Cargo.toml)
+          IFS='.' read -r major minor patch <<<"$current"
+          new="${major}.${minor}.$((patch + 1))"
+          echo "current=$current" >>"$GITHUB_OUTPUT"
+          echo "new=$new" >>"$GITHUB_OUTPUT"
+          sed -i "0,/^version\s*=\s*\"$current\"/s//version = \"$new\"/" Cargo.toml
+          sed -i "s/\"version\": \"$current\"/\"version\": \"$new\"/" web/package.json
+
+      - name: Update Cargo.lock
+        if: steps.diff.outputs.changed == 'true'
+        run: cargo update --workspace --offline || cargo update --workspace
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: catalog-refresh/${{ steps.diff.outputs.fresh_sha }}
+          delete-branch: true
+          commit-message: |
+            Refresh ClinVar catalog (v${{ steps.version.outputs.new }})
+
+            Regenerated from the current ClinVar VCF + PanelApp panel 85.
+            Canonicalised SHA-256: ${{ steps.diff.outputs.fresh_sha }}.
+          title: "Refresh ClinVar catalog → v${{ steps.version.outputs.new }}"
+          body: |
+            Automated catalog refresh.
+
+            * Source: current ClinVar GRCh38 VCF + PanelApp panel 85 (hereditary neuropathy).
+            * Canonicalised SHA-256 of the new catalog payload:
+              `${{ steps.diff.outputs.fresh_sha }}`
+            * Version bump: `${{ steps.version.outputs.current }}` → `${{ steps.version.outputs.new }}`.
+
+            Merging this PR will push to `main`. Tag `v${{ steps.version.outputs.new }}`
+            afterwards to trigger the Docker publish.
+          labels: catalog-refresh, automated

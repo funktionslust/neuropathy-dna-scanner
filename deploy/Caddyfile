@@ -1,0 +1,26 @@
+:8080 {
+	root * /srv
+	encode zstd gzip
+
+	# Vite emits content-hashed filenames under /assets/ — immutable forever.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# WASM bundle filename is stable across builds — revalidate every load.
+	@pkg path /pkg/*
+	header @pkg Cache-Control "no-cache"
+
+	# SPA entry point — always revalidate so users pick up new builds.
+	@root path /
+	header @root Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# SPA fallback: serve real files where present, else the index.
+	try_files {path} /index.html
+	file_server
+}
