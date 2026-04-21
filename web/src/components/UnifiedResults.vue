@@ -474,25 +474,34 @@ function downloadReport() {
 }
 
 .result-reminder {
-  background: var(--amber-light);
-  border: 1px solid var(--amber);
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+  margin-bottom: 1.25rem;
 }
 
-/* Verdict */
-.verdict { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
-.verdict h2 { margin: 0 0 0.5rem; }
-.verdict p { font-size: 0.9rem; }
-.verdict-normal { background: var(--green-light); border-left: 4px solid var(--green); }
-.verdict-normal h2 { color: var(--green); }
-.verdict-finding { background: var(--red-light); border-left: 4px solid var(--red); }
-.verdict-finding h2 { color: var(--red); }
-.verdict-atypical { background: var(--amber-light); border-left: 4px solid var(--amber); }
-.verdict-atypical h2 { color: var(--amber); }
-.verdict-refused { background: var(--code-bg); border-left: 4px solid var(--text-light); }
+/* Verdict - typographic, not a bordered card.
+   Colour comes from the heading and a small status pill; the body
+   sits flat on the page instead of in an alert box. */
+.verdict {
+  padding: 0 0 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+.verdict h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+.verdict p {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.verdict-normal h2   { color: #047857; }
+.verdict-finding h2  { color: #b91c1c; }
+.verdict-atypical h2 { color: #b45309; }
+.verdict-refused h2  { color: var(--text-muted); }
 
 /* Checklist */
 .checklist { margin: 1rem 0; }
@@ -507,25 +516,38 @@ function downloadReport() {
 .chrom-section { margin: 0.5rem 0; }
 .chrom-label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 0.25rem; }
 .sex-note { font-size: 0.72rem; color: var(--text-light); margin: 0.25rem 0 0.5rem; }
-.checklist-items { display: flex; flex-direction: column; gap: 3px; margin-bottom: 0.75rem; }
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+}
 .check-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  background: var(--green-light);
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.875rem;
 }
-.check-row.detected { background: var(--red-light); }
+.check-row:first-child { border-top: none; }
 .check-icon {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  min-width: 40px;
+  min-width: 48px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
   text-align: center;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
-.check-row:not(.detected) .check-icon { color: var(--green); }
-.check-row.detected .check-icon { color: white; background: var(--red); border-radius: 3px; padding: 1px 4px; }
+.check-row:not(.detected) .check-icon {
+  color: #047857;
+  background: #d1fae5;
+}
+.check-row.detected .check-icon {
+  color: #fff;
+  background: var(--red);
+}
 .check-label { flex: 1; }
 .bonus-tag {
   font-size: 0.6rem;

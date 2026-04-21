@@ -234,10 +234,14 @@ function downloadCatalog() {
 
 <style scoped>
 .data-sources {
-  margin: 2rem 0;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.75rem;
+  margin: 1.25rem 0;
 }
-.data-sources summary {
-  cursor: pointer;
+.data-sources .inline-heading {
+  line-height: 1;
+  margin: 0;
 }
 .inline-heading {
   display: inline;

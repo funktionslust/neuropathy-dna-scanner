@@ -228,14 +228,13 @@ function onRefChange(event: Event) {
 .wizard-step {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 0.75rem 0;
+}
+.wizard-step + .wizard-step {
+  border-top: 1px solid var(--border-soft);
 }
 .wizard-step.done {
-  opacity: 0.7;
+  opacity: 0.55;
 }
 .step-num {
   flex-shrink: 0;

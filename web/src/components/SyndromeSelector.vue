@@ -62,11 +62,8 @@ const whyDisabled = computed(() => {
 .wizard-step {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border-soft);
 }
 .step-num {
   flex-shrink: 0;

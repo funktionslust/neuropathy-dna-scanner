@@ -6,7 +6,9 @@
 
 A browser-based tool that screens whole-genome sequencing (WGS) data for inherited neuropathies. It reads BAM and CRAM files directly in the browser using Rust compiled to WebAssembly. No data leaves your computer.
 
-![Variant findings with gene panel](docs/images/screenshot-findings.png)
+![Analysis in progress and top-of-report view](docs/images/screenshot-overview.png)
+
+![Gene panel coverage and technical details](docs/images/screenshot-details.png)
 
 ## What it does
 

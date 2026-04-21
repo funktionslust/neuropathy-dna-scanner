@@ -84,7 +84,7 @@ watch(
 
 <style scoped>
 .progress-section {
-  margin: 1.5rem 0;
+  margin: 0;
 }
 
 .phase-row {
