@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NDS logo preview</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fafbfc; color: #1a1a2e;
+         padding: 2rem; }
+  h1 { font-size: 1.2rem; margin: 0 0 1.5rem; }
+  .row { display: flex; align-items: flex-end; gap: 2rem; margin-bottom: 2rem; }
+  .card { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+  .card small { color: #555; font-size: 0.75rem; }
+  .bg-dark { background: #1a1a2e; color: #fafbfc; padding: 2rem;
+             border-radius: 8px; margin-top: 1rem; }
+  img { image-rendering: auto; }
+</style>
+</head>
+<body>
+  <h1>Neuropathy DNA Scanner &mdash; favicon preview</h1>
+
+  <div class="row">
+    <div class="card"><img src="favicon.svg" width="16"  height="16"><small>16 px (tab)</small></div>
+    <div class="card"><img src="favicon.svg" width="32"  height="32"><small>32 px</small></div>
+    <div class="card"><img src="favicon.svg" width="48"  height="48"><small>48 px</small></div>
+    <div class="card"><img src="favicon.svg" width="64"  height="64"><small>64 px</small></div>
+    <div class="card"><img src="favicon.svg" width="128" height="128"><small>128 px</small></div>
+    <div class="card"><img src="favicon.svg" width="256" height="256"><small>256 px (app icon)</small></div>
+  </div>
+
+  <div class="bg-dark">
+    <div class="row">
+      <div class="card"><img src="favicon.svg" width="16"  height="16"><small style="color:#bbb">16 px dark</small></div>
+      <div class="card"><img src="favicon.svg" width="32"  height="32"><small style="color:#bbb">32 px dark</small></div>
+      <div class="card"><img src="favicon.svg" width="64"  height="64"><small style="color:#bbb">64 px dark</small></div>
+      <div class="card"><img src="favicon.svg" width="128" height="128"><small style="color:#bbb">128 px dark</small></div>
+    </div>
+  </div>
+</body>
+</html>

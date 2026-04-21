@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/logo.svg" alt="Neuropathy DNA Scanner" width="128" height="128">
+</p>
+
 # Neuropathy DNA Scanner
 
 A browser-based tool that screens whole-genome sequencing (WGS) data for inherited neuropathies. It reads BAM and CRAM files directly in the browser using Rust compiled to WebAssembly. No data leaves your computer.

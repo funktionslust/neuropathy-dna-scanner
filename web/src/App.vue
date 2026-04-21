@@ -95,6 +95,7 @@ function onStartOver() {
 
     <!-- Header -->
     <header class="hero">
+      <img src="/favicon.svg" alt="" class="hero-logo" width="96" height="96" />
       <h1>
         Neuropathy DNA Scanner
         <span class="version">{{
@@ -263,6 +264,10 @@ a:visited {
 .hero {
   text-align: center;
   padding: 1.5rem 0 0.5rem;
+}
+.hero-logo {
+  display: block;
+  margin: 0 auto 0.5rem;
 }
 .hero h1 {
   font-size: 1.8rem;
