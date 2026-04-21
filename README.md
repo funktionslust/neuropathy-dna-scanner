@@ -4,6 +4,8 @@
 
 # Neuropathy DNA Scanner
 
+### ➜ [Try it at NeuropathyDNAScanner.com](https://neuropathydnascanner.com)
+
 A browser-based tool that screens whole-genome sequencing (WGS) data for inherited neuropathies. It reads BAM and CRAM files directly in the browser using Rust compiled to WebAssembly. No data leaves your computer.
 
 ![Analysis in progress and top-of-report view](docs/images/screenshot-overview.png)
@@ -133,3 +135,47 @@ The approach proves that privacy-sensitive genomic analysis can run entirely cli
 ## License
 
 MIT License, [Funktionslust GmbH, Wolfgang Stark](https://funktionslust.digital)
+
+---
+
+## Conditions and genes screened
+
+The tool screens for the following inherited neuropathies and related syndromes,
+also known as Hereditary Motor and Sensory Neuropathies (HMSN). Detection is
+either via copy-number analysis (structural variants) or pileup-based genotyping
+of known pathogenic single-nucleotide variants from ClinVar.
+
+**Structural variants on chromosome 17p (copy-number changes):**
+
+- Charcot-Marie-Tooth disease type 1A (CMT1A, HMSN-I)
+- Hereditary Neuropathy with liability to Pressure Palsies (HNPP)
+- Potocki-Lupski Syndrome (PTLS)
+- Smith-Magenis Syndrome (SMS)
+- Yuan-Harel-Lupski Syndrome (YUHAL)
+
+**Point mutations across 169 neuropathy-associated genes, including:**
+
+- Charcot-Marie-Tooth disease types 1B, 1C, 1D, 1E, 1F, 1G
+- Charcot-Marie-Tooth disease types 2A, 2B, 2C, 2E, 2F, 2I, 2J, 2K, 2L, 2M, 2O, 2P, 2R, 2S, 2T, 2X, 2Y, 2Z (axonal forms)
+- Charcot-Marie-Tooth disease types 4A, 4B1, 4B2, 4B3, 4C, 4D, 4E, 4F, 4G, 4H, 4J, 4K (recessive forms)
+- Charcot-Marie-Tooth dominant and recessive intermediate forms (A, B, C, D, E, F, G)
+- Charcot-Marie-Tooth X-linked types (CMTX1, CMTX4, CMTX5)
+- Hereditary Sensory and Autonomic Neuropathy (HSAN, also HSN) types 1, 2, 6
+- Dejerine-Sottas disease (autosomal dominant and recessive forms)
+- Roussy-Lévy syndrome
+- Refsum disease
+- Friedreich ataxia
+- Giant axonal neuropathy
+- Hereditary spastic paraplegia (multiple types)
+- Congenital hypomyelinating neuropathy
+- Familial amyloid polyneuropathy (ATTR amyloidosis)
+
+**Selected genes in the panel:**
+
+PMP22, MPZ, GJB1, MFN2, GDAP1, SH3TC2, NEFL, EGR2, PRX, NDRG1, LITAF, HSPB1,
+HSPB8, MTMR2, SBF1, SBF2, DNM2, FIG4, FGD4, RAB7A, TRPV4, LMNA, BSCL2, IGHMBP2,
+LRSAM1, DNAJB2, AIFM1, PRPS1, NTRK1, SPTLC1, SPTLC2, WNK1, NGF, TTR, FXN, GAN,
+PHYH, PEX7, SPG7, SPG11, SPAST, PLP1, ATP7A, POLG, SACS, and more.
+
+Full panel: 169 genes, 22,844 pathogenic and likely-pathogenic variants from
+ClinVar, curated via the Genomics England PanelApp hereditary neuropathy panel.
