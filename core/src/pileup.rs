@@ -252,10 +252,15 @@ pub fn classify_pileup(ref_count: u32, alt_count: u32, config: &PileupConfig) ->
 
 /// Build a PileupResult from a list of checked variants.
 pub fn build_pileup_result(checked: Vec<CheckedVariant>, catalog: &VariantCatalog) -> PileupResult {
+    let is_snv = |c: &CheckedVariant| c.ref_allele.len() == 1 && c.alt_allele.len() == 1;
     let total_checked = checked.len();
+    // Only count real no-coverage hits on SNVs. Indels are auto-marked
+    // NoCoverage because the pileup engine does not support them yet;
+    // surfacing them under "positions had no data" would double-count
+    // them with the "insertions/deletions not yet supported" stat.
     let no_coverage_count = checked
         .iter()
-        .filter(|c| matches!(c.call, VariantCall::NoCoverage))
+        .filter(|c| is_snv(c) && matches!(c.call, VariantCall::NoCoverage))
         .count();
     let low_coverage_count = checked
         .iter()
