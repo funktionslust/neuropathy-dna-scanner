@@ -183,8 +183,8 @@ function onStartOver() {
    Palette uses a slate scale (neutrals) + a single indigo accent. */
 
 :root {
-  /* Neutrals - near-white body with a cool paper tint */
-  --bg:          #f9faff;
+  /* Neutrals - tinted periwinkle body so white panels float off it */
+  --bg:          #e4e9ff;
   --surface:     #ffffff;
   --surface-2:   #f8fafc;  /* very light slate for hovers / code wells */
   --text:        #0b1120;  /* near-black, slightly warmer than pure black */
@@ -244,7 +244,12 @@ body {
     "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv11", "ss01";
   color: var(--text);
-  background: var(--bg);
+  /* Diagonal wash: top-left stays light, bottom-right deepens into a
+     richer periwinkle. Fixed attachment keeps the gradient stable as
+     the page scrolls. */
+  background:
+    linear-gradient(135deg, #eef1ff 0%, #e4e9ff 45%, #ccd4ff 100%) fixed;
+  min-height: 100vh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
