@@ -236,6 +236,10 @@ html {
   -webkit-text-size-adjust: 100%;
   -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  color-scheme: light;
+  /* Fallback solid fill so the safe areas on iOS (notch, home bar) are
+     never left white when the gradient's fixed attachment retreats. */
+  background: #e4e9ff;
 }
 
 body {
@@ -244,16 +248,26 @@ body {
     "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv11", "ss01";
   color: var(--text);
-  /* Diagonal wash: top-left stays light, bottom-right deepens into a
-     richer periwinkle. Fixed attachment keeps the gradient stable as
-     the page scrolls. */
-  background:
-    linear-gradient(135deg, #eef1ff 0%, #e4e9ff 45%, #ccd4ff 100%) fixed;
+  background: transparent;
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
+  position: relative;
+}
+/* Gradient as a fixed layer instead of a `background-attachment: fixed`
+   on body, because iOS Safari does not paint the body background into
+   the notch / home-indicator safe areas when the URL bar collapses. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(135deg, #eef1ff 0%, #e4e9ff 45%, #ccd4ff 100%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .app-container {
@@ -517,8 +531,15 @@ details[open] > summary::before {
 
 .start-over { text-align: center; margin: 1.5rem 0 0; }
 
-/* Tables */
+/* Tables - block-level scrollable container on narrow viewports so
+   wide rows scroll horizontally inside the card instead of pushing the
+   card off-screen. Cells keep natural widths (no word-level breaking)
+   so the overflow actually triggers scroll. */
 .detail-table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -531,10 +552,6 @@ details[open] > summary::before {
   border-bottom: 1px solid var(--border-soft);
   text-align: left;
   vertical-align: top;
-}
-.detail-table tr:last-child td,
-.detail-table tr:last-child th {
-  border-bottom: none;
 }
 .detail-table td:first-child {
   color: var(--text-soft);
@@ -557,6 +574,21 @@ code {
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Long links shown as their own URL (e.g. "Source: https://..." in a
+   note paragraph) get truncated with an ellipsis so they don't push
+   the card wider than the viewport. The full URL is still the href,
+   so it copies and clicks normally. */
+.note a[href],
+.audit-note a[href] {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 /* Legal overlay */
@@ -585,28 +617,4 @@ code {
   .results-container { padding: 1.1rem; border-radius: var(--r); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:          #0b1120;
-    --surface:     #0f172a;
-    --surface-2:   #111827;
-    --text:        #e2e8f0;
-    --text-muted:  #94a3b8;
-    --text-soft:   #64748b;
-    --border:      #1e293b;
-    --border-soft: #172036;
-    --code-bg:     #111827;
-    --accent-soft: rgba(37, 99, 235, 0.14);
-    --green-soft:  rgba(5, 150, 105, 0.12);
-    --amber-soft:  rgba(180, 83, 9, 0.14);
-    --red-soft:    rgba(185, 28, 28, 0.14);
-    --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow:      0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.5);
-  }
-  .disclaimer-banner { color: #fcd34d; }
-  .disclaimer-banner strong { color: #fef3c7; }
-  .privacy-badge { color: #6ee7b7; border-color: #064e3b; }
-  .error-box { color: #fca5a5; border-color: #7f1d1d; }
-}
 </style>
